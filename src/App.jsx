@@ -7,6 +7,7 @@ import MovementControls from "./components/MovementControls";
 import BattleScreen from "./features/battle/BattleScreen";
 import TeamManagementScreen from "./features/team/TeamManagementScreen";
 import BagScreen from "./features/inventory/BagScreen";
+import PokedexScreen from "./features/pokedex/PokedexScreen";
 
 function App() {
   const { battle, handleNewGame } = useGame();
@@ -14,19 +15,28 @@ function App() {
   const [starterChosen, setStarterChosen] = useState(false);
   const [showTeam, setShowTeam] = useState(false);
   const [showBag, setShowBag] = useState(false);
+  const [showPokedex, setShowPokedex] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[url('/assets/bg.jpg')] bg-cover bg-left px-3 pt-14">
+    <div className="min-h-screen bg-[url('/assets/bg.jpg')] bg-cover bg-left px-3 pt-24 md:pt-14">
       <div className="actions">
         {/* Actions */}
         {starterChosen && !battle.inBattle && (
-          <div className="fixed top-2 right-2 z-50 flex gap-2">
+          <div className="fixed top-2 right-2 z-50 flex gap-2 flex-wrap justify-center">
             {/* Toggle Button */}
             <button
               onClick={() => setShowTeam(!showTeam)}
               className="px-3 py-1 bg-yellow-500 text-white rounded"
             >
               🧢 {showTeam ? "Back to Map" : "Manage Team"}
+            </button>
+
+            {/* Pokedex */}
+            <button
+              onClick={() => setShowPokedex(true)}
+              className="px-3 py-1 bg-blue-500 text-white rounded"
+            >
+              📘 Pokédex
             </button>
 
             {/* Show Bag */}
@@ -74,6 +84,9 @@ function App() {
 
       {/* Battle Screen */}
       {battle.inBattle && <BattleScreen />}
+
+      {/* Pokedex Screen */}
+      {showPokedex && <PokedexScreen onClose={() => setShowPokedex(false)} />}
 
       {/* Movement Controls for Mobile */}
       <MovementControls />

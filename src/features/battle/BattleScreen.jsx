@@ -4,6 +4,7 @@ import HPBar from "../../components/HPBar";
 import XPBar from "../../components/XPBar";
 import { createPokemon } from "../../utils/createPokemon";
 import BattleBagModal from "./BattleBagModal";
+import { fetchPokedexEntry } from "../../utils/fetchPokedexEntry";
 
 export default function BattleScreen() {
   const {
@@ -23,6 +24,7 @@ export default function BattleScreen() {
   const [showSwitchMenu, setShowSwitchMenu] = useState(false);
   const [showCatchPrompt, setShowCatchPrompt] = useState(false);
   const [showBag, setShowBag] = useState(false);
+  const [pokedexEntry, setPokedexEntry] = useState("");
 
   function handleAttack(move) {
     if (!isPlayerTurn || !enemy || battle.turn !== "player") return;
@@ -255,13 +257,24 @@ export default function BattleScreen() {
     }
   }, [enemy?.currentHP]);
 
+  useEffect(() => {
+    async function loadEntry() {
+      if (enemy?.name) {
+        const entry = await fetchPokedexEntry(enemy.name.toLowerCase());
+        setPokedexEntry(entry);
+      }
+    }
+
+    loadEntry();
+  }, [enemy]);
+
   const activePokemon = team[activePokemonIndex] || {};
 
   return (
     <div className="fixed inset-0 z-50 bg-white p-4 flex flex-col items-center">
       <h2 className="text-xl font-bold mb-2">Wild {enemy?.name} Appeared!</h2>
       <div className="flex justify-around w-full mt-2">
-        <div className="text-center">
+        <div className="flex flex-col items-center text-center">
           <img src={activePokemon.sprite} className="w-24" alt="Your Pokémon" />
           {/* Types for player's Pokémon */}
           <div className="flex justify-center gap-1 mt-1">
@@ -290,8 +303,15 @@ export default function BattleScreen() {
             XP: {activePokemon.currentXP}/{activePokemon.level * 20}
           </p>
         </div>
-        <div className="text-center">
+        <div className="flex flex-col items-center text-center">
           <img src={enemy?.sprite} className="w-24" alt="Enemy" />
+
+          {/* Enemy Pokédex Entry */}
+          {pokedexEntry && (
+            <p className="text-xs text-center mt-2 italic max-w-xs mx-auto text-gray-600">
+              “{pokedexEntry}”
+            </p>
+          )}
 
           {/* Types for enemy Pokémon */}
           <div className="flex justify-center gap-1 mt-1">
@@ -306,7 +326,10 @@ export default function BattleScreen() {
             ))}
           </div>
 
-          <p className="mt-1">{enemy?.name}</p>
+          <p className="mt-1 font-semibold">
+            {enemy?.name} (Lv {enemy?.level})
+          </p>
+
           <HPBar current={enemy?.currentHP} max={enemy?.maxHP} />
           <p className="text-sm mt-1">
             HP: {enemy?.currentHP}/{enemy?.maxHP}

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { usePersistentState } from "../hooks/usePersistentState";
+import { fetchPokemonData } from "../utils/fetchPokemonData";
 
 const GameContext = createContext();
 
@@ -33,26 +34,47 @@ export function GameProvider({ children }) {
     message: null,
   });
 
-  const movePlayer = (dx, dy, map) => {
+  const movePlayer = async (dx, dy, map) => {
     const newX = player.x + dx;
     const newY = player.y + dy;
+
     if (map[newY]?.[newX] !== 1) {
       const updated = { ...player, x: newX, y: newY };
       setPlayer(updated);
       localStorage.setItem("playerData", JSON.stringify(updated));
 
-      // Check for wild encounter on grass tile (tile === 2)
+      // Wild encounter on grass tile (2)
       if (map[newY][newX] === 2 && Math.random() < 0.3) {
-        const enemy = {
-          name: "Pidgey",
-          level: 3,
-          maxHP: 40,
-          currentHP: 40,
-          type: ["Flying"],
-          sprite: "/assets/pokemons/1.png",
-          moves: ["Tackle"],
+        const randomId = Math.floor(Math.random() * 151) + 1; // First gen
+        const enemyBase = await fetchPokemonData(randomId);
+
+        if (!enemyBase) return;
+
+        // 🧠 Get average team level
+        const avgLevel =
+          team.length > 0
+            ? Math.round(
+                team.reduce((sum, p) => sum + p.level, 0) / team.length
+              )
+            : 3;
+
+        const level = Math.max(
+          2,
+          Math.min(100, avgLevel + Math.floor(Math.random() * 3))
+        ); // avg ± 2
+        const scaled = {
+          ...enemyBase,
+          name: `Wild ${enemyBase.name}`,
+          level,
+          maxHP: enemyBase.maxHP + (level - 1) * 10,
         };
-        setBattle({ ...battle, inBattle: true, enemy });
+        scaled.currentHP = scaled.maxHP;
+
+        setBattle({
+          ...battle,
+          inBattle: true,
+          enemy: scaled,
+        });
       }
     }
   };

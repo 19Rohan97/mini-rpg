@@ -34,7 +34,7 @@ export default function TeamManagementScreen() {
   };
 
   return (
-    <div className="mx-auto p-6 bg-white shadow rounded fixed w-full h-full top-0 left-0 z-10">
+    <div className="mx-auto p-6 bg-white shadow rounded fixed w-full h-full top-0 left-0 z-10 pt-24 md:pt-14">
       <h2 className="text-2xl font-bold mb-4 text-center">Your Pokémon Team</h2>
 
       {team.length > 0 && (
