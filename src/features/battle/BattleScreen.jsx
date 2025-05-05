@@ -5,6 +5,7 @@ import XPBar from "../../components/XPBar";
 import { createPokemon } from "../../utils/createPokemon";
 import BattleBagModal from "./BattleBagModal";
 import { fetchPokedexEntry } from "../../utils/fetchPokedexEntry";
+import { fetchTypeEffectiveness } from "../../utils/fetchTypeEffectiveness"; //
 
 export default function BattleScreen() {
   const {
@@ -26,15 +27,45 @@ export default function BattleScreen() {
   const [showBag, setShowBag] = useState(false);
   const [pokedexEntry, setPokedexEntry] = useState("");
 
-  function handleAttack(move) {
+  async function handleAttack(move) {
     if (!isPlayerTurn || !enemy || battle.turn !== "player") return;
 
-    const damage = Math.floor(Math.random() * 10) + 5;
+    const effectiveness = await fetchTypeEffectiveness(move.type.toLowerCase());
+
+    if (!effectiveness) {
+      console.warn("No effectiveness data for", move.type);
+      return; // Or fallback to normal effectiveness: multiplier = 1
+    }
+
+    let multiplier = 1;
+
+    if (!Array.isArray(enemy?.type)) {
+      console.warn("Enemy type missing or invalid", enemy);
+      return;
+    }
+
+    for (const enemyType of enemy.type) {
+      if (effectiveness?.double_damage_to?.includes(enemyType)) multiplier *= 2;
+      if (effectiveness?.half_damage_to?.includes(enemyType)) multiplier *= 0.5;
+      if (effectiveness?.no_damage_to?.includes(enemyType)) multiplier *= 0;
+    }
+
+    console.log("Enemy Type:", enemy.type);
+    console.log("Effectiveness:", effectiveness);
+
+    const baseDamage = Math.floor(Math.random() * 10) + 5;
+    const damage = Math.floor(baseDamage * multiplier);
     const newHP = Math.max(enemy.currentHP - damage, 0);
 
-    // setShowMessage(`${playerPokemon.name} used ${move}!`);
+    let effectivenessText = "";
+    if (multiplier === 2) effectivenessText = "It's super effective!";
+    else if (multiplier === 0.5)
+      effectivenessText = "It's not very effective...";
+    else if (multiplier === 0) effectivenessText = "It had no effect.";
 
-    setShowMessage(`${team[activePokemonIndex].name} used ${move}!`);
+    setShowMessage(
+      `${team[activePokemonIndex].name} used ${move.name}! ${effectivenessText}`
+    );
 
     setTimeout(() => {
       if (newHP <= 0) {
@@ -178,70 +209,95 @@ export default function BattleScreen() {
   // Handle enemy's turn
   useEffect(() => {
     if (battle.turn === "enemy" && battle.inBattle && enemy) {
-      const dmg = Math.floor(Math.random() * 8) + 4;
+      async function enemyTurn() {
+        const move = enemy.moves[
+          Math.floor(Math.random() * enemy.moves.length)
+        ] || {
+          name: "Tackle",
+          type: "normal",
+        };
 
-      setTimeout(() => {
-        setShowMessage(`${enemy.name} used Tackle!`);
+        const effectiveness = await fetchTypeEffectiveness(
+          move.type.toLowerCase()
+        );
+
+        if (!effectiveness) {
+          console.warn("No effectiveness data for", move.type);
+          return; // Or fallback to normal effectiveness: multiplier = 1
+        }
+
+        let multiplier = 1;
+        for (const playerType of team[activePokemonIndex].type) {
+          if (effectiveness?.double_damage_to?.includes(playerType))
+            multiplier *= 2;
+          if (effectiveness?.half_damage_to?.includes(playerType))
+            multiplier *= 0.5;
+          if (effectiveness?.no_damage_to?.includes(playerType))
+            multiplier *= 0;
+        }
+
+        const baseDamage = Math.floor(Math.random() * 8) + 4;
+        const dmg = Math.floor(baseDamage * multiplier);
 
         setTimeout(() => {
-          const newPlayerHP = Math.max(
-            team[activePokemonIndex].currentHP - dmg,
-            0
-          );
+          setShowMessage(`${enemy.name} used ${move.name}!`);
 
-          setTeam((prev) => {
-            const updated = [...prev];
-            updated[activePokemonIndex] = {
-              ...updated[activePokemonIndex],
-              currentHP: newPlayerHP,
-            }; // 🔁 This already exists
-            return updated;
-          });
+          setTimeout(() => {
+            const newPlayerHP = Math.max(
+              team[activePokemonIndex].currentHP - dmg,
+              0
+            );
 
-          if (newPlayerHP === 0) {
-            const faintedTeam = [...team];
-            faintedTeam[activePokemonIndex] = {
-              ...faintedTeam[activePokemonIndex],
-              currentHP: 0,
-            };
-            setTeam(faintedTeam); // ✅ Force update
-
-            setShowMessage(`${faintedTeam[0].name} fainted!`);
-
-            setTimeout(() => {
-              const aliveIndex = faintedTeam.findIndex(
-                (poke, i) => i !== 0 && poke.currentHP > 0
-              );
-              if (aliveIndex !== -1) {
-                switchToPokemon(aliveIndex, true);
-              } else {
-                setBattle((prev) => ({
-                  ...prev,
-                  inBattle: false,
-                  enemy: null,
-                  turn: "player",
-                  message: null,
-                }));
-              }
-            }, 1000);
-          } else {
-            setBattle((prev) => ({
-              ...prev,
-              turn: "player",
-            }));
-            setIsPlayerTurn(true);
-            setShowMessage("");
-
-            // Update team with new HP
-            setBattle((prev) => ({ ...prev }));
             setTeam((prev) => {
               const updated = [...prev];
-              updated[0] = { ...updated[0], currentHP: newPlayerHP };
+              updated[activePokemonIndex] = {
+                ...updated[activePokemonIndex],
+                currentHP: newPlayerHP,
+              };
               return updated;
             });
-          }
+
+            if (newPlayerHP === 0) {
+              const faintedTeam = [...team];
+              faintedTeam[activePokemonIndex] = {
+                ...faintedTeam[activePokemonIndex],
+                currentHP: 0,
+              };
+              setTeam(faintedTeam);
+
+              setShowMessage(
+                `${faintedTeam[activePokemonIndex].name} fainted!`
+              );
+
+              setTimeout(() => {
+                const aliveIndex = faintedTeam.findIndex(
+                  (poke, i) => i !== activePokemonIndex && poke.currentHP > 0
+                );
+                if (aliveIndex !== -1) {
+                  switchToPokemon(aliveIndex, true);
+                } else {
+                  setBattle((prev) => ({
+                    ...prev,
+                    inBattle: false,
+                    enemy: null,
+                    turn: "player",
+                    message: null,
+                  }));
+                }
+              }, 1000);
+            } else {
+              setBattle((prev) => ({
+                ...prev,
+                turn: "player",
+              }));
+              setIsPlayerTurn(true);
+              setShowMessage("");
+            }
+          }, 1000);
         }, 1000);
-      }, 1000);
+      }
+
+      enemyTurn(); // ✅ Call the inner async function
     }
   }, [battle.turn]);
 
@@ -369,14 +425,18 @@ export default function BattleScreen() {
       )}
       {/* Move Buttons */}
       {battle.turn === "player" && !showMessage && !showCatchPrompt && (
-        <div className="mt-4 w-full">
-          {activePokemon.moves.map((move) => (
+        <div className="mt-4 w-full flex items-center gap-3 flex-wrap">
+          {activePokemon.moves.map((move, i) => (
             <button
-              key={move}
+              key={i}
               onClick={() => handleAttack(move)}
-              className="bg-blue-500 text-white px-4 py-2 m-2 rounded"
+              className="bg-blue-500 text-white px-4 py-2 rounded flex items-center gap-4 justify-center"
             >
-              {move}
+              {move.name}
+              <img
+                src={`/assets/types/${move.type.toLowerCase()}.png`}
+                alt=""
+              />
             </button>
           ))}
         </div>

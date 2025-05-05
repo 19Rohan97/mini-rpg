@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useGame } from "./context/GameContext";
 
 import MapCanvas from "./features/map/MapCanvas";
@@ -9,6 +9,8 @@ import TeamManagementScreen from "./features/team/TeamManagementScreen";
 import BagScreen from "./features/inventory/BagScreen";
 import PokedexScreen from "./features/pokedex/PokedexScreen";
 
+import { preloadAllTypes } from "./utils/fetchTypeEffectiveness";
+
 function App() {
   const { battle, handleNewGame } = useGame();
 
@@ -16,6 +18,10 @@ function App() {
   const [showTeam, setShowTeam] = useState(false);
   const [showBag, setShowBag] = useState(false);
   const [showPokedex, setShowPokedex] = useState(false);
+
+  useEffect(() => {
+    preloadAllTypes(); // one-time preload on startup
+  }, []);
 
   return (
     <div className="min-h-screen bg-[url('/assets/bg.jpg')] bg-cover bg-left px-3 pt-24 md:pt-14">

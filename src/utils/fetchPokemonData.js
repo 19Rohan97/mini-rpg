@@ -31,8 +31,19 @@ export async function fetchPokemonData(idOrName, level = 5) {
       level,
       type: data.types.map((t) => t.type.name),
       moves: levelUpMoves.length
-        ? levelUpMoves.map((m) => capitalize(m.name))
-        : ["Tackle"], // fallback
+        ? await Promise.all(
+            levelUpMoves.map(async (m) => {
+              const moveRes = await fetch(
+                `https://pokeapi.co/api/v2/move/${m.name}`
+              );
+              const moveData = await moveRes.json();
+              return {
+                name: capitalize(m.name),
+                type: moveData.type.name,
+              };
+            })
+          )
+        : [{ name: "Tackle", type: "normal" }],
     };
   } catch (err) {
     console.error("Failed to fetch Pokémon:", err);

@@ -19,6 +19,6 @@ export function createPokemon({
     currentXP: 0,
     type,
     sprite,
-    moves: moves.length ? moves : ["Tackle"],
+    moves: moves.length ? moves : [{ name: "Tackle", type: "normal" }],
   };
 }

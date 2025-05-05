@@ -4,20 +4,29 @@ export const starterOptions = [
     type: ["Fire"],
     maxHP: 60,
     sprite: "/assets/charmander.png",
-    moves: ["Tackle", "Ember"],
+    moves: [
+      { name: "Tackle", type: "normal" },
+      { name: "Ember", type: "fire" },
+    ],
   },
   {
     name: "Squirtle",
     type: ["Water"],
     maxHP: 65,
     sprite: "/assets/squirtle.png",
-    moves: ["Tackle", "Water Gun"],
+    moves: [
+      { name: "Tackle", type: "normal" },
+      { name: "Water Gun", type: "water" },
+    ],
   },
   {
     name: "Bulbasaur",
     type: ["Grass"],
     maxHP: 70,
     sprite: "/assets/bulbasaur.png",
-    moves: ["Tackle", "Vine Whip"],
+    moves: [
+      { name: "Tackle", type: "normal" },
+      { name: "Vine Whip", type: "grass" },
+    ],
   },
 ];

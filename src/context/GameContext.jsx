@@ -66,11 +66,19 @@ export function GameProvider({ children }) {
         const randomId = Math.floor(Math.random() * 151) + 1; // First gen
         const enemyBase = await fetchPokemonData(randomId, level);
 
-        if (!enemyBase) return;
+        if (!enemyBase || !Array.isArray(enemyBase.type)) {
+          console.warn("Invalid enemy type structure", enemyBase);
+          return;
+        }
+
+        enemyBase.type = enemyBase.type.map((t) =>
+          typeof t === "string" ? t : t?.type?.name
+        );
 
         const scaled = {
           ...enemyBase,
           name: `${enemyBase.name}`,
+          type: enemyBase.type,
           level,
           maxHP: enemyBase.maxHP + (level - 1) * 10,
           currentHP: enemyBase.maxHP + (level - 1) * 10,

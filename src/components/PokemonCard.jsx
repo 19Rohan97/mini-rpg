@@ -132,8 +132,15 @@ export default function PokemonCard({
             <div className="text-left mt-2 text-xs max-w-[300px] mx-auto">
               <ul className="list-none grid grid-cols-2 text-center gap-3">
                 {poke.moves.map((move, i) => (
-                  <li className="bg-amber-100 py-2" key={i}>
-                    {move}
+                  <li
+                    className="bg-amber-100 p-2 flex items-center gap-2 justify-center"
+                    key={i}
+                  >
+                    {move.name}
+                    <img
+                      src={`/assets/types/${move.type.toLowerCase()}.png`}
+                      alt=""
+                    />
                   </li>
                 ))}
               </ul>
