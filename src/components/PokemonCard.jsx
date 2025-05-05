@@ -1,5 +1,4 @@
-import React from "react";
-import { typeEffectiveness } from "../utils/typeEffectiveness";
+import { useTypeEffectiveness } from "../context/TypeEffectivenessContext";
 
 export default function PokemonCard({
   poke,
@@ -16,6 +15,8 @@ export default function PokemonCard({
   onMakeActive,
   onUseItem,
 }) {
+  const effectivenessData = useTypeEffectiveness(); // 🔥 use global data
+
   return (
     <div
       className={`border p-4 rounded bg-gray-50 relative ${
@@ -28,27 +29,28 @@ export default function PokemonCard({
         className="w-20 h-20 mx-auto object-contain"
       />
       <div className="flex justify-center gap-1 mt-1">
-        {poke.type.map((t) => (
-          <div className="relative group">
-            <img
-              key={t}
-              src={`/assets/types/${t.toLowerCase()}.png`}
-              alt={t}
-              className="w-fit"
-            />
-            <div className="absolute z-10 hidden group-hover:block bg-white text-xs border px-2 py-1 rounded shadow-lg w-44 text-left top-6 left-1/2 transform -translate-x-1/2">
-              <p className="font-semibold capitalize">{t}</p>
-              <p>
-                🟢 Strong vs:{" "}
-                {typeEffectiveness[t]?.strongAgainst.join(", ") || "—"}
-              </p>
-              <p>
-                🔴 Weak vs:{" "}
-                {typeEffectiveness[t]?.weakAgainst.join(", ") || "—"}
-              </p>
+        {poke.type.map((t) => {
+          const effectiveness = effectivenessData[t.toLowerCase()] || {};
+
+          return (
+            <div className="relative group" key={t}>
+              <img
+                src={`/assets/types/${t.toLowerCase()}.png`}
+                alt={t}
+                className="w-fit"
+              />
+              <div className="absolute z-10 hidden group-hover:block bg-white text-xs border px-2 py-1 rounded shadow-lg w-44 text-left top-6 left-1/2 transform -translate-x-1/2">
+                <p className="font-semibold capitalize">{t}</p>
+                <p>
+                  🟢 Strong vs: {effectiveness.strongAgainst?.join(", ") || "—"}
+                </p>
+                <p>
+                  🔴 Weak vs: {effectiveness.weakAgainst?.join(", ") || "—"}
+                </p>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="text-center mt-2">
