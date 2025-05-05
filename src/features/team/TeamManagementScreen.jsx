@@ -1,10 +1,21 @@
 import { useGame } from "../../context/GameContext";
 import { useState } from "react";
+import PokemonCard from "../../components/PokemonCard";
 
 export default function TeamManagementScreen() {
-  const { team, setTeam, starterId } = useGame();
+  const {
+    team,
+    setTeam,
+    starterId,
+    inventory,
+    setInventory,
+    activePokemonIndex,
+    setActivePokemonIndex,
+  } = useGame();
+
   const [renameIndex, setRenameIndex] = useState(null);
   const [newName, setNewName] = useState("");
+  const [toastMessage, setToastMessage] = useState("");
 
   const allHealed = team.every((p) => p.currentHP === p.maxHP);
 
@@ -20,8 +31,27 @@ export default function TeamManagementScreen() {
     if (
       window.confirm(`Are you sure you want to release ${team[index].name}?`)
     ) {
+      const releasedName = team[index].name;
       const updatedTeam = team.filter((_, i) => i !== index);
       setTeam(updatedTeam);
+
+      if (index === activePokemonIndex) {
+        const newStarterIndex = updatedTeam.findIndex(
+          (p) => p.id === starterId
+        );
+        const fallbackIndex = newStarterIndex >= 0 ? newStarterIndex : 0;
+        setActivePokemonIndex(fallbackIndex);
+
+        const fallbackName = updatedTeam[fallbackIndex]?.name;
+        if (fallbackName) {
+          setToastMessage(
+            `${releasedName} was released. ${fallbackName} is now Active!`
+          );
+          setTimeout(() => setToastMessage(""), 2000);
+        }
+      } else if (index < activePokemonIndex) {
+        setActivePokemonIndex((prev) => prev - 1);
+      }
     }
   };
 
@@ -33,9 +63,51 @@ export default function TeamManagementScreen() {
     setTeam(healedTeam);
   };
 
+  const handleUseItem = (type, index) => {
+    const healing = {
+      potion: 20,
+      superPotion: 50,
+    };
+
+    if (inventory[type] <= 0) return;
+    const updatedTeam = [...team];
+    const poke = updatedTeam[index];
+
+    if (poke.currentHP === poke.maxHP) return;
+
+    poke.currentHP = Math.min(poke.currentHP + healing[type], poke.maxHP);
+    setTeam(updatedTeam);
+
+    setInventory((prev) => ({
+      ...prev,
+      [type]: prev[type] - 1,
+    }));
+
+    setToastMessage(
+      `${poke.name} healed with ${
+        type === "potion" ? "Potion" : "Super Potion"
+      }!`
+    );
+    setTimeout(() => setToastMessage(""), 2000);
+  };
+
+  const handleMakeActive = (index) => {
+    if (index !== activePokemonIndex) {
+      setActivePokemonIndex(index);
+      setToastMessage(`${team[index].name} is now Active!`);
+      setTimeout(() => setToastMessage(""), 2000);
+    }
+  };
+
   return (
     <div className="mx-auto p-6 bg-white shadow rounded fixed w-full h-full top-0 left-0 z-10 pt-24 md:pt-14">
       <h2 className="text-2xl font-bold mb-4 text-center">Your Pokémon Team</h2>
+
+      {toastMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded shadow z-50">
+          {toastMessage}
+        </div>
+      )}
 
       {team.length > 0 && (
         <div className="text-center mb-4">
@@ -58,75 +130,22 @@ export default function TeamManagementScreen() {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {team.map((poke, idx) => (
-            <div key={idx} className="border p-4 rounded bg-gray-50 relative">
-              <img
-                src={poke.sprite}
-                alt={poke.name}
-                className="w-20 h-20 mx-auto object-contain"
-              />
-              <div className="flex justify-center gap-1 mt-1">
-                {poke.type.map((t) => (
-                  <img
-                    key={t}
-                    src={`/assets/types/${t.toLowerCase()}.png`}
-                    alt={t}
-                    className="w-fit"
-                    title={t}
-                  />
-                ))}
-              </div>
-              <div className="text-center mt-2">
-                {renameIndex === idx ? (
-                  <>
-                    <input
-                      type="text"
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      className="border p-1 rounded w-full text-center"
-                      placeholder="New name"
-                    />
-                    <button
-                      className="text-blue-600 text-sm mt-1 block"
-                      onClick={() => handleRename(idx)}
-                    >
-                      ✅ Save
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <p className="font-bold">{poke.name}</p>
-                    {poke.id === starterId && (
-                      <span className="text-xs bg-yellow-300 px-2 py-1 rounded absolute top-1 right-1">
-                        ⭐ Starter
-                      </span>
-                    )}
-                    <p className="text-xs text-gray-600">
-                      Lv {poke.level} — HP: {poke.currentHP}/{poke.maxHP}
-                    </p>
-                    <p className="text-xs text-gray-600">
-                      XP: {poke.currentXP}/{poke.level * 20}
-                    </p>
-                    <button
-                      onClick={() => {
-                        setRenameIndex(idx);
-                        setNewName(poke.name);
-                      }}
-                      className="text-blue-600 text-sm mt-1"
-                    >
-                      ✏️ Rename
-                    </button>
-                  </>
-                )}
-                {poke.id !== starterId && (
-                  <button
-                    onClick={() => handleRelease(idx)}
-                    className="text-red-500 text-xs mt-2"
-                  >
-                    ❌ Release
-                  </button>
-                )}
-              </div>
-            </div>
+            <PokemonCard
+              key={idx}
+              poke={poke}
+              index={idx}
+              isActive={idx === activePokemonIndex}
+              isStarter={poke.id === starterId}
+              inventory={inventory}
+              renameIndex={renameIndex}
+              newName={newName}
+              setNewName={setNewName}
+              setRenameIndex={setRenameIndex}
+              onRename={handleRename}
+              onRelease={handleRelease}
+              onMakeActive={handleMakeActive}
+              onUseItem={handleUseItem}
+            />
           ))}
         </div>
       )}

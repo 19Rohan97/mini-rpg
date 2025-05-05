@@ -11,7 +11,6 @@ export default function StarterSelection({ onStarterChosen }) {
 
   function chooseStarter(pokemon) {
     const starter = createPokemon({ ...pokemon, level: 5 });
-    starter.id = crypto.randomUUID();
     setStarterId(starter.id);
     setTeam([starter]);
     setPlayer((prev) => ({ ...prev, currentHP: 100 }));
@@ -21,7 +20,7 @@ export default function StarterSelection({ onStarterChosen }) {
   useEffect(() => {
     async function loadStarters() {
       const results = await Promise.all(
-        starterNames.map((name) => fetchPokemonData(name))
+        starterNames.map((name) => fetchPokemonData(name, 5))
       );
       setStarters(results.filter(Boolean));
     }
@@ -50,7 +49,9 @@ export default function StarterSelection({ onStarterChosen }) {
               alt={starter.name}
               className="w-28 h-28 mx-auto"
             />
-            <p className="mt-2 text-center font-semibold">{starter.name}</p>
+            <p className="mt-2 text-center font-semibold">
+              {starter.name.charAt(0).toUpperCase() + starter.name.slice(1)}
+            </p>
           </button>
         ))}
       </div>

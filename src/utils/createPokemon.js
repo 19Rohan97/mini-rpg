@@ -6,7 +6,7 @@ export function createPokemon({
   maxHP = 40,
   type = [],
   sprite = "",
-  moves = ["Tackle"],
+  moves = [],
 }) {
   const scaledHP = maxHP + (level - 1) * 10;
 
@@ -19,6 +19,6 @@ export function createPokemon({
     currentXP: 0,
     type,
     sprite,
-    moves,
+    moves: moves.length ? moves : ["Tackle"],
   };
 }

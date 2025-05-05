@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { usePersistentState } from "../hooks/usePersistentState";
 import { fetchPokemonData } from "../utils/fetchPokemonData";
 
@@ -6,7 +6,10 @@ const GameContext = createContext();
 
 export function GameProvider({ children }) {
   const [starterId, setStarterId] = usePersistentState("starter-id", null);
-  const [activePokemonIndex, setActivePokemonIndex] = useState(0);
+  const [activePokemonIndex, setActivePokemonIndex] = usePersistentState(
+    "active-pokemon-index",
+    0
+  );
 
   const [player, setPlayer] = usePersistentState("playerData", {
     x: 1,
@@ -35,6 +38,8 @@ export function GameProvider({ children }) {
   });
 
   const movePlayer = async (dx, dy, map) => {
+    if (battleRef.current.inBattle) return;
+
     const newX = player.x + dx;
     const newY = player.y + dy;
 
@@ -45,11 +50,6 @@ export function GameProvider({ children }) {
 
       // Wild encounter on grass tile (2)
       if (map[newY][newX] === 2 && Math.random() < 0.3) {
-        const randomId = Math.floor(Math.random() * 151) + 1; // First gen
-        const enemyBase = await fetchPokemonData(randomId);
-
-        if (!enemyBase) return;
-
         // 🧠 Get average team level
         const avgLevel =
           team.length > 0
@@ -62,19 +62,26 @@ export function GameProvider({ children }) {
           2,
           Math.min(100, avgLevel + Math.floor(Math.random() * 3))
         ); // avg ± 2
+
+        const randomId = Math.floor(Math.random() * 151) + 1; // First gen
+        const enemyBase = await fetchPokemonData(randomId, level);
+
+        if (!enemyBase) return;
+
         const scaled = {
           ...enemyBase,
-          name: `Wild ${enemyBase.name}`,
+          name: `${enemyBase.name}`,
           level,
           maxHP: enemyBase.maxHP + (level - 1) * 10,
+          currentHP: enemyBase.maxHP + (level - 1) * 10,
         };
         scaled.currentHP = scaled.maxHP;
 
-        setBattle({
-          ...battle,
+        setBattle((prev) => ({
+          ...prev,
           inBattle: true,
           enemy: scaled,
-        });
+        }));
       }
     }
   };
@@ -103,6 +110,12 @@ export function GameProvider({ children }) {
   useEffect(() => {
     localStorage.setItem("pokemon-inventory", JSON.stringify(inventory));
   }, [inventory]);
+
+  const battleRef = useRef(battle);
+
+  useEffect(() => {
+    battleRef.current = battle;
+  }, [battle]);
 
   return (
     <GameContext.Provider

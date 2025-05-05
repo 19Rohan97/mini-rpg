@@ -41,7 +41,7 @@ export default function BattleScreen() {
         const xpGained = 15 + Math.floor(Math.random() * 10);
         setShowMessage(`${enemy.name} fainted! Gained ${xpGained} XP!`);
 
-        setTimeout(() => {
+        setTimeout(async () => {
           const updatedPokemon = { ...team[activePokemonIndex] };
           updatedPokemon.currentXP += xpGained;
 

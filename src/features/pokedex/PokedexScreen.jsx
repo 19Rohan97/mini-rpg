@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useGame } from "../../context/GameContext";
 import { fetchPokedexEntry } from "../../utils/fetchPokedexEntry";
 
@@ -7,8 +7,10 @@ export default function PokedexScreen({ onClose }) {
   const [allPokemon, setAllPokemon] = useState([]);
   const [entries, setEntries] = useState({});
 
-  // List of caught names (e.g., ["Charmander", "Pidgey"])
-  const caughtNames = team.map((p) => p.name.toLowerCase());
+  const caughtNames = useMemo(
+    () => team.map((p) => p.name.toLowerCase()),
+    [team]
+  );
 
   // Fetch first 151 Pokémon
   useEffect(() => {
@@ -25,13 +27,18 @@ export default function PokedexScreen({ onClose }) {
   useEffect(() => {
     async function loadEntries() {
       const newEntries = {};
-      for (const name of caughtNames) {
-        if (!entries[name]) {
-          const entry = await fetchPokedexEntry(name);
-          newEntries[name] = entry;
-        }
+      const uncached = caughtNames.filter((name) => !entries[name]);
+
+      if (uncached.length === 0) return;
+
+      for (const name of uncached) {
+        const entry = await fetchPokedexEntry(name);
+        newEntries[name] = entry;
       }
-      setEntries((prev) => ({ ...prev, ...newEntries }));
+
+      if (Object.keys(newEntries).length > 0) {
+        setEntries((prev) => ({ ...prev, ...newEntries }));
+      }
     }
 
     loadEntries();

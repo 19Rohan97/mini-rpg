@@ -1,7 +1,7 @@
 import { useGame } from "../../context/GameContext";
 
 export default function BagScreen({ onClose }) {
-  const { inventory, team, setTeam } = useGame();
+  const { inventory, setInventory, team, setTeam } = useGame();
 
   function handlePotion(type) {
     const healing = {
@@ -22,7 +22,11 @@ export default function BagScreen({ onClose }) {
     setTeam(updatedTeam);
 
     // Decrease item count
-    inventory[type] -= 1;
+    setInventory((prev) => ({
+      ...prev,
+      [type]: prev[type] - 1,
+    }));
+
     localStorage.setItem("pokemon-inventory", JSON.stringify(inventory));
     alert(`${poke.name} was healed with a ${type}!`);
   }
